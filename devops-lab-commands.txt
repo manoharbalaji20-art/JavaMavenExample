@@ -1,0 +1,297 @@
+DEVOPS LAB COMMANDS: GIT, DOCKER, MINIKUBE, NAGIOS
+===================================================
+Experiments 4, 5, 7 from the lab list.
+Replace anything in CAPITALS or <angle brackets> with your own value.
+Works on Mac (Docker Desktop) and Ubuntu/EC2. Add "sudo" before docker on EC2.
+
+
+#####################################################################
+EXPERIMENT 4: GIT
+#####################################################################
+
+----- 4A. BASIC GIT COMMANDS -----
+git --version                              # version
+git config --global user.name "Your Name"  # config
+git config --global user.email "you@example.com"
+git config --list                          # show all settings
+mkdir myproject && cd myproject
+git init                                   # init: create a repo
+git status                                 # status
+echo "hello" > a.txt
+git add a.txt                              # add one file
+git add .                                  # add everything
+git commit -m "first commit"               # commit
+echo "more" >> a.txt
+git diff                                   # diff: unstaged changes
+git diff --staged                          # diff: staged changes
+git help commit                            # help (opens the manual)
+git commit --help
+
+
+----- 4B. BRANCHES, CHECKOUT, MERGE, REVERT, LOG -----
+git branch                                 # list branches
+git branch feature1                        # create a branch
+git checkout feature1                      # switch to it
+git checkout -b feature2                   # create AND switch
+git switch main                            # newer way to switch
+echo "feature work" > f.txt
+git add . && git commit -m "feature work"
+git switch main
+git merge feature1                         # merge feature1 into main
+git log                                    # full history
+git log --oneline                          # short history
+git log --oneline --graph --all            # branch graph
+git revert HEAD                            # undo last commit (new commit)
+git revert <commit-id>                     # undo a specific commit
+git branch -d feature1                     # delete a merged branch
+# If a merge conflict happens: edit the files, then
+#   git add .   and   git commit
+
+
+----- 4C. REMOTE REPOSITORIES: REMOTE, CLONE, PULL, PUSH, FORK -----
+git remote -v                              # list remotes
+git remote add origin https://github.com/manoharbalaji20-art/REPO.git
+git branch -M main
+git push -u origin main                    # push (first time)
+git push                                   # push later
+git pull                                   # pull latest changes
+git clone https://github.com/manoharbalaji20-art/REPO.git   # clone
+git remote remove origin                   # remove a remote
+
+FORK: done on the GitHub website, not with a command.
+  Open someone's repo -> click "Fork" (top right) -> then:
+  git clone https://github.com/YOUR_USERNAME/FORKED_REPO.git
+  git remote add upstream https://github.com/ORIGINAL_OWNER/REPO.git
+  git fetch upstream                       # get the original's updates
+  git merge upstream/main
+
+AUTHENTICATION: GitHub no longer accepts your account password on push.
+  Use a Personal Access Token as the password:
+  GitHub -> Settings -> Developer settings -> Personal access tokens.
+
+
+#####################################################################
+EXPERIMENT 5: MAVEN PROJECT TO GITHUB, JENKINS INSTALL
+#####################################################################
+
+----- 5A / 5B. PUSH AN ECLIPSE MAVEN PROJECT TO GITHUB -----
+1. Create an EMPTY repo on GitHub (no README).
+2. In a terminal, go to the Eclipse project folder:
+   cd ~/eclipse-workspace/PROJECT_NAME
+   git init
+   echo "target/" > .gitignore             # keep build output out of Git
+   git add .
+   git commit -m "Initial Commit"
+   git branch -M main
+   git remote add origin https://github.com/manoharbalaji20-art/REPO.git
+   git push -u origin main
+(Eclipse alternative: right-click project -> Team -> Share Project -> Git.)
+
+
+----- 5C. INSTALL JENKINS -----
+Mac:
+   brew install jenkins-lts
+   brew services start jenkins-lts
+   # open http://localhost:8080
+   # first password:  cat ~/.jenkins/secrets/initialAdminPassword
+
+Or run it from the WAR file (any OS with Java):
+   java -jar jenkins.war --httpPort=8080
+
+Ubuntu:
+   sudo apt update
+   sudo apt install -y fontconfig openjdk-17-jre
+   # add the Jenkins repository (see jenkins.io/doc/book/installing/linux),
+   # then:
+   sudo apt install -y jenkins
+   sudo systemctl enable --now jenkins
+   sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+
+#####################################################################
+EXPERIMENT 7: DOCKER, MINIKUBE, NAGIOS
+#####################################################################
+
+----- 7A. INSTALL DOCKER, MINIKUBE, DOCKER HUB ACCOUNT -----
+Docker Hub account: sign up free at https://hub.docker.com
+
+Mac:
+   brew install --cask docker              # then open Docker Desktop once
+   brew install minikube kubectl
+Ubuntu / EC2:
+   sudo apt update
+   sudo apt install -y docker.io
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER           # log out/in to drop "sudo"
+   curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+   sudo install minikube-linux-amd64 /usr/local/bin/minikube
+   sudo snap install kubectl --classic
+
+Check:
+   docker --version
+   docker run hello-world
+   minikube version
+   kubectl version --client
+
+
+----- 7B. DOCKER CLI COMMANDS -----
+docker login                               # Docker Hub login
+docker pull nginx                          # download an image
+docker images                              # list images
+docker run -d --name web -p 8081:80 nginx  # run in background, map port
+docker ps                                  # running containers
+docker ps -a                               # all containers
+docker logs web                            # container logs
+docker exec -it web bash                   # shell inside the container
+docker inspect web                         # full details
+docker stats                               # live CPU/memory (Ctrl+C to quit)
+docker stop web                            # stop
+docker start web                           # start again
+docker restart web
+docker rm web                              # delete container (stopped)
+docker rm -f web                           # force delete (running)
+docker rmi nginx                           # delete image
+docker search redis                        # search Docker Hub
+docker system prune                        # clean unused data
+docker --help
+
+
+----- 7C. MODIFY AND PUSH A DOCKER IMAGE -----
+docker pull ubuntu
+docker run -it --name mybox ubuntu bash
+   # inside the container:
+   apt update && apt install -y curl
+   echo "my change" > /hello.txt
+   exit
+docker commit mybox YOUR_DOCKERHUB_USERNAME/myubuntu:v1
+docker images
+docker login
+docker push YOUR_DOCKERHUB_USERNAME/myubuntu:v1
+
+Run it anywhere:
+docker run -it YOUR_DOCKERHUB_USERNAME/myubuntu:v1 bash
+
+
+----- 7D. CREATE AND PUSH A DOCKERFILE IMAGE -----
+mkdir dockerlab && cd dockerlab
+cat > Dockerfile <<'EOF'
+FROM redis:latest
+CMD ["redis-server"]
+EOF
+
+docker build -t YOUR_DOCKERHUB_USERNAME/myredis:v1 .
+docker run -d --name redisnew -p 6379:6379 YOUR_DOCKERHUB_USERNAME/myredis:v1
+docker exec -it redisnew redis-cli ping    # should reply PONG
+docker login
+docker push YOUR_DOCKERHUB_USERNAME/myredis:v1
+
+Retag an existing image:
+docker tag myredis:v1 YOUR_DOCKERHUB_USERNAME/myredis:v1
+
+
+----- 7E. MULTIPLE CONTAINERS WITH DOCKER COMPOSE -----
+mkdir compose-lab && cd compose-lab
+cat > docker-compose.yml <<'EOF'
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "8082:80"
+    depends_on:
+      - cache
+  cache:
+    image: redis:latest
+EOF
+
+docker compose up -d                       # start all services
+docker compose ps                          # status
+docker compose logs -f                     # follow logs (Ctrl+C to quit)
+docker compose exec cache redis-cli ping   # PONG
+docker compose stop                        # stop (keeps containers)
+docker compose start
+docker compose down                        # stop AND remove containers
+docker compose up -d --scale web=3         # run 3 copies of web
+                                           # (remove the fixed "ports:" line
+                                           #  first, or the ports will clash)
+# Open http://localhost:8082
+# Older installs use "docker-compose" (with a hyphen) instead.
+
+
+----- 7F. DEPLOY AND SCALE APPLICATIONS WITH MINIKUBE -----
+minikube start --driver=docker             # start the local cluster
+minikube status
+kubectl get nodes
+
+# Deploy
+kubectl create deployment nginx-app --image=nginx
+kubectl get deployments
+kubectl get pods
+
+# Expose it
+kubectl expose deployment nginx-app --type=NodePort --port=80
+kubectl get services
+minikube service nginx-app --url           # prints the URL, open it
+                                           # (on Mac keep this terminal open)
+
+# Scale
+kubectl scale deployment nginx-app --replicas=4
+kubectl get pods -o wide                   # now 4 pods
+kubectl scale deployment nginx-app --replicas=2    # scale down
+
+# Update and roll back
+kubectl set image deployment/nginx-app nginx=nginx:1.25
+kubectl rollout status deployment/nginx-app
+kubectl rollout undo deployment/nginx-app
+
+# Inspect
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+minikube dashboard                         # web dashboard
+
+# Clean up
+kubectl delete service nginx-app
+kubectl delete deployment nginx-app
+minikube stop
+minikube delete                            # remove the whole cluster
+
+
+----- 7G. NAGIOS MONITORING IN DOCKER -----
+docker pull jasonrivers/nagios:latest
+docker run -d --name nagios4 -p 8888:80 jasonrivers/nagios:latest
+docker ps
+# Open http://localhost:8888
+# Default login: nagiosadmin / nagios
+
+(Port 8888 is used because Jenkins already uses 8080 on your Mac.)
+
+Useful:
+docker logs nagios4                        # check startup
+docker exec -it nagios4 bash               # shell inside
+docker stop nagios4
+docker start nagios4
+docker rm -f nagios4                       # remove
+
+Custom login and saved config (optional):
+docker run -d --name nagios4 -p 8888:80 \
+  -e NAGIOSADMIN_USER=admin -e NAGIOSADMIN_PASS=admin123 \
+  -v nagios-etc:/opt/nagios/etc \
+  -v nagios-var:/opt/nagios/var \
+  jasonrivers/nagios:latest
+
+In the Nagios web page:
+  Hosts -> see "localhost" and its status
+  Services -> CPU load, disk, HTTP, ping checks
+  Problems -> anything critical or warning
+
+If the page does not load, wait about 30 seconds after starting, then check
+"docker logs nagios4". If the login fails, check the image's Docker Hub page
+for its current default credentials.
+
+
+#####################################################################
+CLEAN-UP (run when you finish a lab)
+#####################################################################
+docker rm -f $(docker ps -aq)              # remove ALL containers
+docker rmi $(docker images -q)             # remove ALL images
+docker system prune -a                     # remove everything unused
+minikube delete
